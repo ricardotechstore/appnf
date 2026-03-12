@@ -1,5 +1,5 @@
 // ==========================================
-// NF Reembolso - Main JavaScript
+// NF Reembolso S&S - Main JavaScript
 // ==========================================
 
 // Global Variables
@@ -110,34 +110,6 @@ function setupEventListeners() {
 }
 
 // ==========================================
-// Tab Management
-// ==========================================
-
-function switchTab(tabName) {
-    // Update tab buttons
-    document.querySelectorAll('.tab-btn').forEach(btn => {
-        btn.classList.remove('active');
-    });
-    document.querySelector(`[data-tab="${tabName}"]`).classList.add('active');
-
-    // Update tab panes
-    document.querySelectorAll('.tab-pane').forEach(pane => {
-        pane.classList.remove('active');
-    });
-    document.getElementById(`${tabName}Tab`).classList.add('active');
-
-    // Stop QR scanner when switching tabs
-    if (tabName !== 'add' && html5QrCode) {
-        stopQRScanner();
-    }
-
-    // Update stats when switching to report tab
-    if (tabName === 'report') {
-        updateStats();
-    }
-}
-
-// ==========================================
 // QR Code Scanner
 // ==========================================
 
@@ -195,10 +167,10 @@ function stopQRScanner() {
 
 function onScanSuccess(decodedText, decodedResult) {
     console.log('QR Code detectado:', decodedText);
-    
+
     // Parse NF-e URL to extract data
     const nfeData = parseNFeQRCode(decodedText);
-    
+
     if (nfeData) {
         stopQRScanner();
         showToast('QR Code lido com sucesso!', 'success');
@@ -215,290 +187,43 @@ function onScanSuccess(decodedText, decodedResult) {
 }
 
 function onScanError(errorMessage) {
-    // Ignore scan errors (too noisy in console)
+    console.log('Erro de leitura do QR Code:', errorMessage);
+    // Você pode adicionar uma mensagem de alerta aqui se necessário
 }
 
 function parseNFeQRCode(qrText) {
     try {
-        // Try to parse as URL
         const url = new URL(qrText);
         const params = new URLSearchParams(url.search);
         
-        // Extract common NF-e parameters
         let value = null;
         let date = null;
         
-        // Check for vNF parameter (valor da nota fiscal)
         if (params.has('vNF')) {
             value = parseFloat(params.get('vNF')).toFixed(2);
         }
         
-        // Check for dhEmi parameter (data/hora emissão)
         if (params.has('dhEmi')) {
             const dateStr = params.get('dhEmi');
-            date = dateStr.substring(0, 10); // Get YYYY-MM-DD
+            date = dateStr.substring(0, 10);
         }
         
-        // If we found value, return the data
         if (value) {
             return { value, date: date || new Date().toISOString().split('T')[0] };
         }
-        
-        // If no specific parameters found, try to extract from URL path
+
         const pathMatch = qrText.match(/vNF=([0-9.]+)/);
         if (pathMatch) {
             value = parseFloat(pathMatch[1]).toFixed(2);
             return { value, date: new Date().toISOString().split('T')[0] };
         }
-        
+
         return null;
     } catch (e) {
-        // Not a valid URL, try direct text parsing
         console.log('Texto do QR Code:', qrText);
         showToast('QR Code detectado. Preencha os dados manualmente.', 'warning');
         return null;
     }
-}
-
-// ==========================================
-// Manual Form Handling
-// ==========================================
-
-function handleManualSubmit(e) {
-    e.preventDefault();
-    
-    const value = parseFloat(document.getElementById('manualValue').value);
-    const date = document.getElementById('manualDate').value;
-    const description = document.getElementById('manualDescription').value;
-    const category = document.getElementById('manualCategory').value;
-    const photoInput = document.getElementById('photoInput');
-    
-    if (!value || !date || !category) {
-        showToast('Preencha todos os campos obrigatórios', 'error');
-        return;
-    }
-    
-    const note = {
-        value: value,
-        date: date,
-        description: description || 'Sem descrição',
-        category: category,
-        photo: null
-    };
-    
-    // Get photo if uploaded
-    if (photoInput.files && photoInput.files[0]) {
-        const reader = new FileReader();
-        reader.onload = function(event) {
-            note.photo = event.target.result;
-            saveNote(note);
-            resetManualForm();
-        };
-        reader.readAsDataURL(photoInput.files[0]);
-    } else {
-        saveNote(note);
-        resetManualForm();
-    }
-}
-
-function handlePhotoUpload(e) {
-    const file = e.target.files[0];
-    const preview = document.getElementById('photoPreview');
-    
-    if (file) {
-        const reader = new FileReader();
-        reader.onload = function(event) {
-            preview.innerHTML = `<img src="${event.target.result}" alt="Preview">`;
-            preview.classList.add('active');
-        };
-        reader.readAsDataURL(file);
-    }
-}
-
-function resetManualForm() {
-    document.getElementById('manualForm').reset();
-    document.getElementById('photoPreview').innerHTML = '';
-    document.getElementById('photoPreview').classList.remove('active');
-    setDefaultDate();
-}
-
-function setDefaultDate() {
-    const today = new Date().toISOString().split('T')[0];
-    document.getElementById('manualDate').value = today;
-}
-
-// ==========================================
-// Notes List Rendering
-// ==========================================
-
-function renderNotesList() {
-    const notesList = document.getElementById('notesList');
-    const sortValue = document.getElementById('sortFilter').value;
-    
-    if (currentNotes.length === 0) {
-        notesList.innerHTML = `
-            <div class="empty-state">
-                <i class="fas fa-inbox"></i>
-                <p>Nenhuma nota fiscal cadastrada</p>
-                <p class="empty-subtitle">Use o scanner de QR Code para adicionar</p>
-            </div>
-        `;
-        return;
-    }
-    
-    // Sort notes
-    let sortedNotes = [...currentNotes];
-    switch(sortValue) {
-        case 'date-desc':
-            sortedNotes.sort((a, b) => new Date(b.date) - new Date(a.date));
-            break;
-        case 'date-asc':
-            sortedNotes.sort((a, b) => new Date(a.date) - new Date(b.date));
-            break;
-        case 'value-desc':
-            sortedNotes.sort((a, b) => b.value - a.value);
-            break;
-        case 'value-asc':
-            sortedNotes.sort((a, b) => a.value - b.value);
-            break;
-    }
-    
-    notesList.innerHTML = sortedNotes.map(note => `
-        <div class="note-item" onclick="showNoteDetails('${note.id}')">
-            <div class="note-header">
-                <span class="note-value">R$ ${formatCurrency(note.value)}</span>
-                <span class="note-date">${formatDate(note.date)}</span>
-            </div>
-            <div class="note-info">
-                <p class="note-description">${note.description}</p>
-                <span class="note-category">${getCategoryLabel(note.category)}</span>
-                ${note.photo ? '<p class="note-photo-indicator"><i class="fas fa-camera"></i> Com foto</p>' : ''}
-            </div>
-        </div>
-    `).join('');
-}
-
-function handleSearch(e) {
-    const searchTerm = e.target.value.toLowerCase();
-    
-    const filteredNotes = currentNotes.filter(note => {
-        return note.description.toLowerCase().includes(searchTerm) ||
-               note.category.toLowerCase().includes(searchTerm) ||
-               note.value.toString().includes(searchTerm) ||
-               formatDate(note.date).includes(searchTerm);
-    });
-    
-    const notesList = document.getElementById('notesList');
-    
-    if (filteredNotes.length === 0) {
-        notesList.innerHTML = `
-            <div class="empty-state">
-                <i class="fas fa-search"></i>
-                <p>Nenhuma nota encontrada</p>
-                <p class="empty-subtitle">Tente outro termo de busca</p>
-            </div>
-        `;
-        return;
-    }
-    
-    notesList.innerHTML = filteredNotes.map(note => `
-        <div class="note-item" onclick="showNoteDetails('${note.id}')">
-            <div class="note-header">
-                <span class="note-value">R$ ${formatCurrency(note.value)}</span>
-                <span class="note-date">${formatDate(note.date)}</span>
-            </div>
-            <div class="note-info">
-                <p class="note-description">${note.description}</p>
-                <span class="note-category">${getCategoryLabel(note.category)}</span>
-                ${note.photo ? '<p class="note-photo-indicator"><i class="fas fa-camera"></i> Com foto</p>' : ''}
-            </div>
-        </div>
-    `).join('');
-}
-
-// ==========================================
-// Modal Management
-// ==========================================
-
-function showNoteDetails(noteId) {
-    const note = currentNotes.find(n => n.id === noteId);
-    if (!note) return;
-    
-    currentNoteId = noteId;
-    const modalBody = document.getElementById('modalBody');
-    
-    modalBody.innerHTML = `
-        <div class="detail-item">
-            <div class="detail-label">Valor</div>
-            <div class="detail-value" style="color: var(--primary-color); font-size: 24px; font-weight: 700;">
-                R$ ${formatCurrency(note.value)}
-            </div>
-        </div>
-        <div class="detail-item">
-            <div class="detail-label">Data</div>
-            <div class="detail-value">${formatDate(note.date)}</div>
-        </div>
-        <div class="detail-item">
-            <div class="detail-label">Descrição</div>
-            <div class="detail-value">${note.description}</div>
-        </div>
-        <div class="detail-item">
-            <div class="detail-label">Categoria</div>
-            <div class="detail-value">${getCategoryLabel(note.category)}</div>
-        </div>
-        ${note.photo ? `
-            <div class="detail-item">
-                <div class="detail-label">Foto da Nota Fiscal</div>
-                <img src="${note.photo}" alt="Nota Fiscal" class="detail-image">
-            </div>
-        ` : ''}
-    `;
-    
-    document.getElementById('noteModal').classList.add('active');
-}
-
-function closeModal() {
-    document.getElementById('noteModal').classList.remove('active');
-    currentNoteId = null;
-}
-
-function handleDeleteNote() {
-    if (!currentNoteId) return;
-    
-    if (confirm('Deseja realmente excluir esta nota fiscal?')) {
-        deleteNote(currentNoteId);
-    }
-}
-
-// ==========================================
-// Statistics and Totals
-// ==========================================
-
-function updateTotalValue() {
-    const total = currentNotes.reduce((sum, note) => sum + note.value, 0);
-    document.getElementById('totalValue').textContent = `R$ ${formatCurrency(total)}`;
-}
-
-function updateStats() {
-    const total = currentNotes.length;
-    const totalValue = currentNotes.reduce((sum, note) => sum + note.value, 0);
-    
-    // Calculate current month total
-    const currentMonth = new Date().getMonth();
-    const currentYear = new Date().getFullYear();
-    const monthNotes = currentNotes.filter(note => {
-        const noteDate = new Date(note.date);
-        return noteDate.getMonth() === currentMonth && noteDate.getFullYear() === currentYear;
-    });
-    const monthTotal = monthNotes.reduce((sum, note) => sum + note.value, 0);
-    
-    // Calculate average
-    const average = total > 0 ? totalValue / total : 0;
-    
-    document.getElementById('statTotal').textContent = total;
-    document.getElementById('statValue').textContent = `R$ ${formatCurrency(totalValue)}`;
-    document.getElementById('statMonth').textContent = `R$ ${formatCurrency(monthTotal)}`;
-    document.getElementById('statAvg').textContent = `R$ ${formatCurrency(average)}`;
 }
 
 // ==========================================
@@ -512,7 +237,6 @@ function generateReport() {
     
     let filteredNotes = [...currentNotes];
     
-    // Apply filters
     if (startDate) {
         filteredNotes = filteredNotes.filter(note => note.date >= startDate);
     }
@@ -523,7 +247,6 @@ function generateReport() {
         filteredNotes = filteredNotes.filter(note => note.category === category);
     }
     
-    // Sort by date
     filteredNotes.sort((a, b) => new Date(a.date) - new Date(b.date));
     
     const reportPreview = document.getElementById('reportPreview');
@@ -534,7 +257,7 @@ function generateReport() {
         reportPreview.style.display = 'none';
         return;
     }
-    
+
     // Generate report HTML
     const totalValue = filteredNotes.reduce((sum, note) => sum + note.value, 0);
     
@@ -551,6 +274,7 @@ function generateReport() {
                     <th>Descrição</th>
                     <th>Categoria</th>
                     <th>Valor</th>
+                    <th>Foto</th>
                 </tr>
             </thead>
             <tbody>
@@ -560,6 +284,7 @@ function generateReport() {
                         <td>${note.description}</td>
                         <td>${getCategoryLabel(note.category)}</td>
                         <td>R$ ${formatCurrency(note.value)}</td>
+                        <td>${note.photo ? `<img src="${note.photo}" alt="Foto da Nota" class="report-photo">` : ''}</td>
                     </tr>
                 `).join('')}
             </tbody>
