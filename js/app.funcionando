@@ -1,5 +1,5 @@
 // ==========================================
-// NF Reembolso - Main JavaScript
+// NF Reembolso  - Main JavaScript
 // ==========================================
 
 // Global Variables
@@ -211,9 +211,6 @@ function onScanSuccess(decodedText, decodedResult) {
         setTimeout(() => {
             document.getElementById('manualValue').focus();
         }, 500);
-
-        // Captura a imagem da nota fiscal da câmera e anexa ao relatório
-        captureImageAndAttach();
     }
 }
 
@@ -255,30 +252,6 @@ function parseNFeQRCode(qrText) {
         showToast('QR Code detectado. Preencha os dados manualmente.', 'warning');
         return null;
     }
-}
-
-// Função que captura a imagem da nota fiscal da câmera
-function captureImageAndAttach() {
-    const videoElement = document.querySelector("video"); // Obtém o vídeo da câmera
-    const canvas = document.createElement("canvas");
-    const context = canvas.getContext("2d");
-
-    // Ajusta o tamanho do canvas conforme o vídeo
-    canvas.width = videoElement.videoWidth;
-    canvas.height = videoElement.videoHeight;
-
-    // Desenha o conteúdo do vídeo no canvas
-    context.drawImage(videoElement, 0, 0, canvas.width, canvas.height);
-
-    // Cria um link de imagem para anexar no relatório
-    const imgData = canvas.toDataURL("image/jpeg");
-
-    // Anexa a imagem ao relatório
-    const imgElement = document.createElement("img");
-    imgElement.src = imgData;
-    document.getElementById('relatorio-imagem').appendChild(imgElement); // Aqui você ajusta conforme o seu HTML
-
-    console.log("Imagem da nota fiscal capturada e anexada.");
 }
 
 // ==========================================
@@ -533,7 +506,6 @@ function generateReport() {
     
     let filteredNotes = [...currentNotes];
     
-    // Apply filters
     if (startDate) {
         filteredNotes = filteredNotes.filter(note => note.date >= startDate);
     }
@@ -544,7 +516,6 @@ function generateReport() {
         filteredNotes = filteredNotes.filter(note => note.category === category);
     }
     
-    // Sort by date
     filteredNotes.sort((a, b) => new Date(a.date) - new Date(b.date));
     
     const reportPreview = document.getElementById('reportPreview');
@@ -555,7 +526,7 @@ function generateReport() {
         reportPreview.style.display = 'none';
         return;
     }
-    
+
     // Generate report HTML
     const totalValue = filteredNotes.reduce((sum, note) => sum + note.value, 0);
     
@@ -572,6 +543,7 @@ function generateReport() {
                     <th>Descrição</th>
                     <th>Categoria</th>
                     <th>Valor</th>
+                    <th>Foto</th>
                 </tr>
             </thead>
             <tbody>
@@ -581,6 +553,7 @@ function generateReport() {
                         <td>${note.description}</td>
                         <td>${getCategoryLabel(note.category)}</td>
                         <td>R$ ${formatCurrency(note.value)}</td>
+                        <td>${note.photo ? `<img src="${note.photo}" alt="Foto da Nota" class="report-photo">` : ''}</td>
                     </tr>
                 `).join('')}
             </tbody>

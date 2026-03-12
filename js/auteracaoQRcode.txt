@@ -1,0 +1,143 @@
+// ==========================================
+// QR Code Scanner
+// ==========================================
+
+async function startQRScanner() {
+    const qrReaderDiv = document.getElementById('qrReader');
+    const startBtn = document.getElementById('startScanBtn');
+    const stopBtn = document.getElementById('stopScanBtn');
+
+    try {
+        if (!html5QrCode) {
+            html5QrCode = new Html5Qrcode("qrReader");
+        }
+
+        qrReaderDiv.classList.add('active');
+        startBtn.style.display = 'none';
+        stopBtn.style.display = 'inline-flex';
+
+        await html5QrCode.start(
+            { facingMode: "environment" },
+            {
+                fps: 10,
+                qrbox: { width: 250, height: 250 }
+            },
+            onScanSuccess,
+            onScanError
+        );
+
+        showToast('Scanner iniciado. Posicione o QR Code', 'success');
+    } catch (err) {
+        console.error('Erro ao iniciar scanner:', err);
+        showToast('Erro ao acessar câmera. Verifique as permissões.', 'error');
+        stopQRScanner();
+    }
+}
+
+function stopQRScanner() {
+    const qrReaderDiv = document.getElementById('qrReader');
+    const startBtn = document.getElementById('startScanBtn');
+    const stopBtn = document.getElementById('stopScanBtn');
+
+    if (html5QrCode && html5QrCode.isScanning) {
+        html5QrCode.stop().then(() => {
+            qrReaderDiv.classList.remove('active');
+            startBtn.style.display = 'inline-flex';
+            stopBtn.style.display = 'none';
+        }).catch(err => {
+            console.error('Erro ao parar scanner:', err);
+        });
+    } else {
+        qrReaderDiv.classList.remove('active');
+        startBtn.style.display = 'inline-flex';
+        stopBtn.style.display = 'none';
+    }
+}
+
+function onScanSuccess(decodedText, decodedResult) {
+    console.log('QR Code detectado:', decodedText);
+
+    // Parse NF-e URL to extract data
+    const nfeData = parseNFeQRCode(decodedText);
+
+    if (nfeData) {
+        stopQRScanner();
+        showToast('QR Code lido com sucesso!', 'success');
+        
+        // Auto-fill form with scanned data
+        document.getElementById('manualValue').value = nfeData.value || '';
+        document.getElementById('manualDate').value = nfeData.date || '';
+        
+        // Switch to manual form to let user complete the information
+        setTimeout(() => {
+            document.getElementById('manualValue').focus();
+        }, 500);
+
+        // Captura a imagem da nota fiscal da câmera e anexa ao relatório
+        captureImageAndAttach();
+    }
+}
+
+function onScanError(errorMessage) {
+    console.log('Erro de leitura do QR Code:', errorMessage);
+    // Você pode adicionar uma mensagem de alerta aqui se necessário
+}
+
+function parseNFeQRCode(qrText) {
+    try {
+        const url = new URL(qrText);
+        const params = new URLSearchParams(url.search);
+        
+        let value = null;
+        let date = null;
+        
+        if (params.has('vNF')) {
+            value = parseFloat(params.get('vNF')).toFixed(2);
+        }
+        
+        if (params.has('dhEmi')) {
+            const dateStr = params.get('dhEmi');
+            date = dateStr.substring(0, 10);
+        }
+        
+        if (value) {
+            return { value, date: date || new Date().toISOString().split('T')[0] };
+        }
+
+        const pathMatch = qrText.match(/vNF=([0-9.]+)/);
+        if (pathMatch) {
+            value = parseFloat(pathMatch[1]).toFixed(2);
+            return { value, date: new Date().toISOString().split('T')[0] };
+        }
+
+        return null;
+    } catch (e) {
+        console.log('Texto do QR Code:', qrText);
+        showToast('QR Code detectado. Preencha os dados manualmente.', 'warning');
+        return null;
+    }
+}
+
+// Função que captura a imagem da nota fiscal da câmera
+function captureImageAndAttach() {
+    const videoElement = document.querySelector("video"); // Obtém o vídeo da câmera
+    const canvas = document.createElement("canvas");
+    const context = canvas.getContext("2d");
+
+    // Ajusta o tamanho do canvas conforme o vídeo
+    canvas.width = videoElement.videoWidth;
+    canvas.height = videoElement.videoHeight;
+
+    // Desenha o conteúdo do vídeo no canvas
+    context.drawImage(videoElement, 0, 0, canvas.width, canvas.height);
+
+    // Cria um link de imagem para anexar no relatório
+    const imgData = canvas.toDataURL("image/jpeg");
+
+    // Anexa a imagem ao relatório
+    const imgElement = document.createElement("img");
+    imgElement.src = imgData;
+    document.getElementById('relatorio-imagem').appendChild(imgElement); // Aqui você ajusta conforme o seu HTML
+
+    console.log("Imagem da nota fiscal capturada e anexada.");
+}
