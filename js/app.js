@@ -506,16 +506,13 @@ function updateStats() {
 // ==========================================
 
 function generateReport() {
-    const { jsPDF } = window.jspdf; // Importa a biblioteca jsPDF
-    const doc = new jsPDF();
-
     const startDate = document.getElementById('reportStartDate').value;
     const endDate = document.getElementById('reportEndDate').value;
     const category = document.getElementById('reportCategory').value;
     
     let filteredNotes = [...currentNotes];
     
-    // Aplica os filtros
+    // Apply filters
     if (startDate) {
         filteredNotes = filteredNotes.filter(note => note.date >= startDate);
     }
@@ -526,57 +523,61 @@ function generateReport() {
         filteredNotes = filteredNotes.filter(note => note.category === category);
     }
     
-    // Ordena as notas por data
+    // Sort by date
     filteredNotes.sort((a, b) => new Date(a.date) - new Date(b.date));
-
-    console.log('Notas filtradas:', filteredNotes);
-
+    
+    const reportPreview = document.getElementById('reportPreview');
+    const reportContent = document.getElementById('reportContent');
+    
     if (filteredNotes.length === 0) {
         showToast('Nenhuma nota encontrada para os filtros selecionados', 'warning');
+        reportPreview.style.display = 'none';
         return;
     }
-
-    let yPosition = 20; // Posição inicial no eixo Y do PDF
-    doc.setFont("helvetica", "normal");
-    doc.setFontSize(14);
-    doc.text('Relatório de Reembolso', 20, yPosition);
-    yPosition += 10;
     
-    doc.text(`Período: ${startDate ? formatDate(startDate) : 'Início'} até ${endDate ? formatDate(endDate) : 'Hoje'}`, 20, yPosition);
-    doc.text(`Categoria: ${category || 'Todas'}`, 20, yPosition + 10);
-    doc.text(`Total de Notas: ${filteredNotes.length}`, 20, yPosition + 20);
-    yPosition += 30;  // Ajusta a posição para a tabela
-
-    // Gera a tabela no PDF
-    doc.setFontSize(10);
-    doc.text('Data       Descrição         Categoria         Valor', 20, yPosition);
-    yPosition += 10;
-
-    filteredNotes.forEach(note => {
-        doc.text(`${formatDate(note.date)}   ${note.description}    ${getCategoryLabel(note.category)}    R$ ${formatCurrency(note.value)}`, 20, yPosition);
-        yPosition += 10;
+    // Generate report HTML
+    const totalValue = filteredNotes.reduce((sum, note) => sum + note.value, 0);
+    
+    let reportHTML = `
+        <h3>Relatório de Reembolso</h3>
+        <p><strong>Período:</strong> ${startDate ? formatDate(startDate) : 'Início'} até ${endDate ? formatDate(endDate) : 'Hoje'}</p>
+        <p><strong>Categoria:</strong> ${category ? getCategoryLabel(category) : 'Todas'}</p>
+        <p><strong>Total de Notas:</strong> ${filteredNotes.length}</p>
         
-        // Se houver foto, insira a imagem no PDF
-        if (note.photo) {
-            const img = new Image();
-            img.src = note.photo;
-            
-            img.onload = function () {
-                doc.addImage(img, 'JPEG', 20, yPosition, 50, 50); // Adiciona a imagem no PDF
-                yPosition += 60;  // Ajusta a posição após a foto
-                if (yPosition > 250) {  // Caso o conteúdo ultrapasse a página, cria uma nova página
-                    doc.addPage();
-                    yPosition = 20;
-                }
-                doc.save('relatorio_de_reembolso.pdf'); // Salva o PDF gerado
-            };
-        }
-    });
-
-    // Caso não tenha foto, salva o PDF normalmente
-    if (yPosition <= 250) {
-        doc.save('relatorio_de_reembolso.pdf');
-    }
+        <table>
+            <thead>
+                <tr>
+                    <th>Data</th>
+                    <th>Descrição</th>
+                    <th>Categoria</th>
+                    <th>Valor</th>
+                </tr>
+            </thead>
+            <tbody>
+                ${filteredNotes.map(note => `
+                    <tr>
+                        <td>${formatDate(note.date)}</td>
+                        <td>${note.description}</td>
+                        <td>${getCategoryLabel(note.category)}</td>
+                        <td>R$ ${formatCurrency(note.value)}</td>
+                    </tr>
+                `).join('')}
+            </tbody>
+        </table>
+        
+        <div class="report-total">
+            <span class="report-total-label">Valor Total:</span>
+            <span class="report-total-value">R$ ${formatCurrency(totalValue)}</span>
+        </div>
+    `;
+    
+    reportContent.innerHTML = reportHTML;
+    reportPreview.style.display = 'block';
+    
+    // Scroll to report
+    reportPreview.scrollIntoView({ behavior: 'smooth' });
+    
+    showToast('Relatório gerado com sucesso!', 'success');
 }
 
 function shareReport() {
