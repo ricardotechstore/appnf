@@ -1,5 +1,5 @@
 // ==========================================
-// NF Reembolso - Main JavaScript
+// NF Reembolso S&S - Main JavaScript
 // ==========================================
 
 // Global Variables
@@ -195,10 +195,10 @@ function stopQRScanner() {
 
 function onScanSuccess(decodedText, decodedResult) {
     console.log('QR Code detectado:', decodedText);
-    
+
     // Parse NF-e URL to extract data
     const nfeData = parseNFeQRCode(decodedText);
-    
+
     if (nfeData) {
         stopQRScanner();
         showToast('QR Code lido com sucesso!', 'success');
@@ -215,45 +215,39 @@ function onScanSuccess(decodedText, decodedResult) {
 }
 
 function onScanError(errorMessage) {
-    // Ignore scan errors (too noisy in console)
+    console.log('Erro de leitura do QR Code:', errorMessage);
+    // Você pode adicionar uma mensagem de alerta aqui se necessário
 }
 
 function parseNFeQRCode(qrText) {
     try {
-        // Try to parse as URL
         const url = new URL(qrText);
         const params = new URLSearchParams(url.search);
         
-        // Extract common NF-e parameters
         let value = null;
         let date = null;
         
-        // Check for vNF parameter (valor da nota fiscal)
         if (params.has('vNF')) {
             value = parseFloat(params.get('vNF')).toFixed(2);
         }
         
-        // Check for dhEmi parameter (data/hora emissão)
         if (params.has('dhEmi')) {
             const dateStr = params.get('dhEmi');
-            date = dateStr.substring(0, 10); // Get YYYY-MM-DD
+            date = dateStr.substring(0, 10);
         }
         
-        // If we found value, return the data
         if (value) {
             return { value, date: date || new Date().toISOString().split('T')[0] };
         }
-        
-        // If no specific parameters found, try to extract from URL path
+
         const pathMatch = qrText.match(/vNF=([0-9.]+)/);
         if (pathMatch) {
             value = parseFloat(pathMatch[1]).toFixed(2);
             return { value, date: new Date().toISOString().split('T')[0] };
         }
-        
+
         return null;
     } catch (e) {
-        // Not a valid URL, try direct text parsing
         console.log('Texto do QR Code:', qrText);
         showToast('QR Code detectado. Preencha os dados manualmente.', 'warning');
         return null;
@@ -470,7 +464,7 @@ function handleDeleteNote() {
     }
 }
 
-// ==========================================
+/ ==========================================
 // Statistics and Totals
 // ==========================================
 
@@ -512,7 +506,6 @@ function generateReport() {
     
     let filteredNotes = [...currentNotes];
     
-    // Apply filters
     if (startDate) {
         filteredNotes = filteredNotes.filter(note => note.date >= startDate);
     }
@@ -523,7 +516,6 @@ function generateReport() {
         filteredNotes = filteredNotes.filter(note => note.category === category);
     }
     
-    // Sort by date
     filteredNotes.sort((a, b) => new Date(a.date) - new Date(b.date));
     
     const reportPreview = document.getElementById('reportPreview');
@@ -534,7 +526,7 @@ function generateReport() {
         reportPreview.style.display = 'none';
         return;
     }
-    
+
     // Generate report HTML
     const totalValue = filteredNotes.reduce((sum, note) => sum + note.value, 0);
     
@@ -551,6 +543,7 @@ function generateReport() {
                     <th>Descrição</th>
                     <th>Categoria</th>
                     <th>Valor</th>
+                    <th>Foto</th>
                 </tr>
             </thead>
             <tbody>
@@ -560,6 +553,7 @@ function generateReport() {
                         <td>${note.description}</td>
                         <td>${getCategoryLabel(note.category)}</td>
                         <td>R$ ${formatCurrency(note.value)}</td>
+                        <td>${note.photo ? `<img src="${note.photo}" alt="Foto da Nota" class="report-photo">` : ''}</td>
                     </tr>
                 `).join('')}
             </tbody>
