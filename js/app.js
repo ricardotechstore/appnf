@@ -529,14 +529,14 @@ function generateReport() {
     // Ordena as notas por data
     filteredNotes.sort((a, b) => new Date(a.date) - new Date(b.date));
 
+    console.log('Notas filtradas:', filteredNotes);
+
     if (filteredNotes.length === 0) {
         showToast('Nenhuma nota encontrada para os filtros selecionados', 'warning');
         return;
     }
-    
-    // Cria o conteúdo do relatório no PDF
+
     let yPosition = 20; // Posição inicial no eixo Y do PDF
-    
     doc.setFont("helvetica", "normal");
     doc.setFontSize(14);
     doc.text('Relatório de Reembolso', 20, yPosition);
@@ -572,7 +572,7 @@ function generateReport() {
             };
         }
     });
-    
+
     // Caso não tenha foto, salva o PDF normalmente
     if (yPosition <= 250) {
         doc.save('relatorio_de_reembolso.pdf');
