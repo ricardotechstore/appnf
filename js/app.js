@@ -1,5 +1,5 @@
 // ==========================================
-// NF Reembolso S&S - Main JavaScript
+// NF Reembolso  - Main JavaScript
 // ==========================================
 
 // Global Variables
