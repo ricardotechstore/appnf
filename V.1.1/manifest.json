@@ -1,0 +1,32 @@
+{
+  "name": "NF Reembolso - Gerenciador de Notas Fiscais",
+  "short_name": "NF Reembolso",
+  "version": "1.1.0",
+  "description": "Aplicativo para gerenciamento de notas fiscais para reembolso empresarial com scanner de QR Code e geração de PDF com fotos",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#007AFF",
+  "theme_color": "#007AFF",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": [
+    "business",
+    "finance",
+    "productivity"
+  ],
+  "screenshots": [],
+  "prefer_related_applications": false
+}
