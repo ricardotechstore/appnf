@@ -1,11 +1,15 @@
-// Service Worker for NF Reembolso PWA
-const CACHE_NAME = 'nf-reembolso-v1';
+// Service Worker for NF Reembolso PWA v1.2.0
+const CACHE_NAME = 'nf-reembolso-v1.2.0';
 const urlsToCache = [
   '/',
   '/index.html',
   '/css/style.css',
   '/js/app.js',
-  '/manifest.json'
+  '/manifest.json',
+  'https://cdn.jsdelivr.net/npm/html5-qrcode@2.3.8/html5-qrcode.min.js',
+  'https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js',
+  'https://cdn.jsdelivr.net/npm/cropperjs@1.6.1/dist/cropper.min.js',
+  'https://cdn.jsdelivr.net/npm/cropperjs@1.6.1/dist/cropper.min.css'
 ];
 
 // Install Service Worker

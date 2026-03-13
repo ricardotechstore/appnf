@@ -16,6 +16,9 @@
     <!-- Styles -->
     <link rel="stylesheet" href="css/style.css">
     
+    <!-- Cropper.js for Image Editing -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/cropperjs@1.6.1/dist/cropper.min.css">
+    
     <!-- Font Awesome for Icons -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css">
     
@@ -24,6 +27,9 @@
     
     <!-- jsPDF for PDF Generation -->
     <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+    
+    <!-- Cropper.js for Image Editing -->
+    <script src="https://cdn.jsdelivr.net/npm/cropperjs@1.6.1/dist/cropper.min.js"></script>
 </head>
 <body>
     <!-- Header -->
@@ -266,6 +272,46 @@
 
     <!-- Toast Notifications -->
     <div class="toast-container" id="toastContainer"></div>
+
+    <!-- Image Editor Modal -->
+    <div class="modal" id="imageEditorModal">
+        <div class="modal-content modal-large">
+            <div class="modal-header">
+                <h2><i class="fas fa-crop"></i> Editar Foto da Nota Fiscal</h2>
+                <button class="modal-close" id="closeImageEditor">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="image-editor-container">
+                    <img id="imageToEdit" src="" alt="Imagem para editar">
+                </div>
+                <div class="editor-controls">
+                    <button class="btn btn-secondary btn-small" id="rotateLeftBtn">
+                        <i class="fas fa-undo"></i> Girar Esq.
+                    </button>
+                    <button class="btn btn-secondary btn-small" id="rotateRightBtn">
+                        <i class="fas fa-redo"></i> Girar Dir.
+                    </button>
+                    <button class="btn btn-secondary btn-small" id="flipHBtn">
+                        <i class="fas fa-arrows-alt-h"></i> Espelhar H
+                    </button>
+                    <button class="btn btn-secondary btn-small" id="flipVBtn">
+                        <i class="fas fa-arrows-alt-v"></i> Espelhar V
+                    </button>
+                    <button class="btn btn-secondary btn-small" id="resetCropBtn">
+                        <i class="fas fa-sync"></i> Resetar
+                    </button>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-primary" id="saveEditedImage">
+                    <i class="fas fa-check"></i> Salvar Foto Editada
+                </button>
+                <button class="btn btn-secondary" id="cancelImageEdit">Cancelar</button>
+            </div>
+        </div>
+    </div>
 
     <!-- Scripts -->
     <script src="js/app.js"></script>

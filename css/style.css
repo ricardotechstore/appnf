@@ -595,6 +595,37 @@ body {
     animation: slideUp 0.3s ease;
 }
 
+.modal-large {
+    max-width: 800px;
+}
+
+/* Image Editor */
+.image-editor-container {
+    width: 100%;
+    max-height: 400px;
+    overflow: hidden;
+    background: #000;
+    border-radius: 8px;
+    margin-bottom: 15px;
+}
+
+.image-editor-container img {
+    max-width: 100%;
+    display: block;
+}
+
+.editor-controls {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    justify-content: center;
+}
+
+.btn-small {
+    padding: 10px 12px;
+    font-size: 13px;
+}
+
 @keyframes slideUp {
     from {
         transform: translateY(50px);
