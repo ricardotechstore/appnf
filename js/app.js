@@ -734,7 +734,7 @@ async function generatePDFReport(notes, startDate, endDate, category) {
         // Title
         pdf.setFontSize(20);
         pdf.setFont(undefined, 'bold');
-        pdf.text('Relatório de Reembolso', margin, yPosition);
+        pdf.text('Relatório de Reembolso de Ricardo Aragão', margin, yPosition);
         yPosition += 15;
         
         // Period and filters
