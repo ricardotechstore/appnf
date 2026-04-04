@@ -10,16 +10,30 @@ let cropper = null;
 let currentEditedImage = null;
 
 // Initialize App
-document.addEventListener('DOMContentLoaded', () => {
-    initializeApp();
+document.addEventListener('DOMContentLoaded', async () => {
+    await initializeApp();
 });
 
-function initializeApp() {
-    loadNotes();
-    setupEventListeners();
-    updateTotalValue();
-    updateStats();
-    setDefaultDate();
+async function initializeApp() {
+    try {
+        await window.NotesRepository.initialize();
+        await loadNotes();
+        setupEventListeners();
+        updateTotalValue();
+        updateStats();
+        setDefaultDate();
+    } catch (error) {
+        console.error('Erro ao inicializar app:', error);
+        showToast('Erro ao inicializar armazenamento do app', 'error');
+
+        // fallback visual mínimo
+        currentNotes = [];
+        setupEventListeners();
+        updateTotalValue();
+        updateStats();
+        setDefaultDate();
+        renderNotesList();
+    }
 }
 
 // ==========================================
@@ -46,31 +60,59 @@ function loadFromLocalStorage(key) {
     }
 }
 
-function loadNotes() {
-    const notes = loadFromLocalStorage('nfReembolsoNotes');
-    currentNotes = notes || [];
-    renderNotesList();
+async function loadNotes() {
+    try {
+        const notes = await window.NotesRepository.getNotes();
+        currentNotes = Array.isArray(notes) ? notes : [];
+        renderNotesList();
+    } catch (error) {
+        console.error('Erro ao carregar notas:', error);
+        showToast('Erro ao carregar notas', 'error');
+        currentNotes = [];
+        renderNotesList();
+    }
 }
 
-function saveNote(note) {
-    note.id = Date.now().toString();
-    note.createdAt = new Date().toISOString();
-    currentNotes.unshift(note);
-    saveToLocalStorage('nfReembolsoNotes', currentNotes);
-    showToast('Nota fiscal salva com sucesso!', 'success');
-    updateTotalValue();
-    updateStats();
-    renderNotesList();
+async function saveNote(note) {
+    try {
+        note.id = Date.now().toString();
+        note.createdAt = new Date().toISOString();
+
+        const savedNote = await window.NotesRepository.saveNote(note);
+
+        currentNotes = [savedNote, ...currentNotes.filter(item => item.id !== savedNote.id)];
+
+        showToast('Nota fiscal salva com sucesso!', 'success');
+        updateTotalValue();
+        updateStats();
+        renderNotesList();
+
+        return true;
+    } catch (error) {
+        console.error('Erro ao salvar nota:', error);
+        showToast('Erro ao salvar nota fiscal', 'error');
+        return false;
+    }
 }
 
-function deleteNote(noteId) {
-    currentNotes = currentNotes.filter(note => note.id !== noteId);
-    saveToLocalStorage('nfReembolsoNotes', currentNotes);
-    showToast('Nota fiscal excluída', 'success');
-    updateTotalValue();
-    updateStats();
-    renderNotesList();
-    closeModal();
+async function deleteNote(noteId) {
+    try {
+        await window.NotesRepository.deleteNote(noteId);
+
+        currentNotes = currentNotes.filter(note => note.id !== noteId);
+
+        showToast('Nota fiscal excluída', 'success');
+        updateTotalValue();
+        updateStats();
+        renderNotesList();
+        closeModal();
+
+        return true;
+    } catch (error) {
+        console.error('Erro ao excluir nota:', error);
+        showToast('Erro ao excluir nota fiscal', 'error');
+        return false;
+    }
 }
 
 // ==========================================
@@ -355,7 +397,7 @@ function parseNFeQRCode(qrText) {
 // Manual Form Handling
 // ==========================================
 
-function handleManualSubmit(e) {
+async function handleManualSubmit(e) {
     e.preventDefault();
     
     console.log('Form submitted'); // Debug
@@ -380,7 +422,12 @@ function handleManualSubmit(e) {
         photo: currentEditedImage // Use foto editada se disponível
     };
     
-    saveNote(note);
+    const saved = await saveNote(note);
+
+    if (!saved) {
+        return;
+    }
+
     resetManualForm();
     
     // Switch to notes tab to show saved note
@@ -640,11 +687,11 @@ function closeModal() {
     currentNoteId = null;
 }
 
-function handleDeleteNote() {
+async function handleDeleteNote() {
     if (!currentNoteId) return;
     
     if (confirm('Deseja realmente excluir esta nota fiscal?')) {
-        deleteNote(currentNoteId);
+        await deleteNote(currentNoteId);
     }
 }
 
@@ -937,23 +984,30 @@ async function generatePDFReport(notes, startDate, endDate, category) {
     }
 }
 
-function exportData() {
-    if (currentNotes.length === 0) {
-        showToast('Nenhuma nota para exportar', 'warning');
-        return;
+async function exportData() {
+    try {
+        const notes = await window.NotesRepository.exportNotes();
+
+        if (!notes || notes.length === 0) {
+            showToast('Nenhuma nota para exportar', 'warning');
+            return;
+        }
+        
+        const dataStr = JSON.stringify(notes, null, 2);
+        const dataBlob = new Blob([dataStr], { type: 'application/json' });
+        const url = URL.createObjectURL(dataBlob);
+        
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `nf-reembolso-backup-${new Date().toISOString().split('T')[0]}.json`;
+        link.click();
+        
+        URL.revokeObjectURL(url);
+        showToast('Backup exportado com sucesso!', 'success');
+    } catch (error) {
+        console.error('Erro ao exportar dados:', error);
+        showToast('Erro ao exportar backup', 'error');
     }
-    
-    const dataStr = JSON.stringify(currentNotes, null, 2);
-    const dataBlob = new Blob([dataStr], { type: 'application/json' });
-    const url = URL.createObjectURL(dataBlob);
-    
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `nf-reembolso-backup-${new Date().toISOString().split('T')[0]}.json`;
-    link.click();
-    
-    URL.revokeObjectURL(url);
-    showToast('Backup exportado com sucesso!', 'success');
 }
 
 // ==========================================
